@@ -2,7 +2,6 @@ package httpsDemo
 
 import (
 	"crypto/tls"
-	"crypto/x509"
 	"io/ioutil"
 	"log"
 	"net/http"
@@ -12,23 +11,9 @@ import (
 )
 
 func Client(req []string) ([]bool, error) {
-	pool := x509.NewCertPool()
-	caCrt, err := ioutil.ReadFile("cert/ca.pem")
-	if err != nil {
-		log.Println("read ca.crt file error:", err.Error())
-		return nil, err
-	}
-	pool.AppendCertsFromPEM(caCrt)
-	cliCrt, err := tls.LoadX509KeyPair("cert/client.pem", "cert/client.key")
-	if err != nil {
-		log.Println("LoadX509KeyPair error:", err.Error())
-		return nil, err
-	}
+	//跳过证书验证
 	tr := &http.Transport{
-		TLSClientConfig: &tls.Config{
-			RootCAs:      pool,
-			Certificates: []tls.Certificate{cliCrt},
-		},
+		TLSClientConfig: &tls.Config{InsecureSkipVerify: true},
 	}
 	client := &http.Client{Transport: tr}
 	resp, err := client.PostForm("https://localhost:8080/", url.Values{"data": req})

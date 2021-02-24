@@ -1,35 +1,23 @@
 package httpsDemo
 
 import (
-	"crypto/tls"
-	"crypto/x509"
 	"fmt"
-	"io/ioutil"
 	"log"
 	"net/http"
 	"sync"
 )
 
 var data sync.Map
+var mutex sync.Mutex
 
 func Server() {
-	pool := x509.NewCertPool()
-	crt, err := ioutil.ReadFile("cert/ca.pem")
-	if err != nil {
-		log.Fatalln("读取证书失败！", err.Error())
-	}
-	pool.AppendCertsFromPEM(crt)
 	http.HandleFunc("/", handler)
 	s := &http.Server{
 		Addr: ":8080",
-		TLSConfig: &tls.Config{
-			ClientCAs:  pool,
-			ClientAuth: tls.RequireAndVerifyClientCert, // 检验客户端证书
-		},
 	}
 	// server 任何情况下均不能退出进程
 	for true {
-		err = s.ListenAndServeTLS("cert/server.pem", "cert/server.key")
+		err := s.ListenAndServeTLS("cert/server.crt", "cert/server_no_passwd.key")
 		if err != nil {
 			log.Println("server: ListenAndServeTLS error:", err)
 		}
@@ -53,6 +41,8 @@ func handler(w http.ResponseWriter, r *http.Request) {
 	}()
 	strs := r.PostForm["data"]
 	result := make([]bool, len(strs))
+	// 加锁, (1.读取key，2.若key不存在则赋值。) 这两步不是原子性的
+	mutex.Lock()
 	for i, v := range strs {
 		_, ok := data.Load(v)
 		if ok {
@@ -62,6 +52,7 @@ func handler(w http.ResponseWriter, r *http.Request) {
 			data.Store(v, struct{}{})
 		}
 	}
+	mutex.Unlock()
 	_, err = fmt.Fprint(w, result)
 	if err != nil {
 		log.Println("return result error:", err)

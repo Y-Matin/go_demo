@@ -39,6 +39,5 @@ func main() {
 	if count != len(strings) {
 		fmt.Println("多个client同时请求 ，返回结果错误")
 	}
-
-	time.Sleep(time.Hour)
+	time.Sleep(time.Second)
 }

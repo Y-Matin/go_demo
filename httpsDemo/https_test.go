@@ -5,6 +5,7 @@ import (
 	"reflect"
 	"sync"
 	"testing"
+	"time"
 )
 
 // TestMain 初始化：启动server
@@ -12,6 +13,8 @@ func TestMain(m *testing.M) {
 	fmt.Println("begin")
 	//启动server
 	go Server()
+	// 休眠1秒，确保server启动
+	time.Sleep(time.Second)
 	m.Run()
 	fmt.Println("end")
 }
