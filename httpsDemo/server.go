@@ -7,7 +7,7 @@ import (
 	"sync"
 )
 
-var data sync.Map
+var data map[string]struct{}
 var mutex sync.Mutex
 
 func Server() {
@@ -15,6 +15,7 @@ func Server() {
 	s := &http.Server{
 		Addr: ":8080",
 	}
+	data=make(map[string]struct{})
 	// server 任何情况下均不能退出进程
 	for true {
 		err := s.ListenAndServeTLS("cert/server.crt", "cert/server_no_passwd.key")
@@ -41,15 +42,15 @@ func handler(w http.ResponseWriter, r *http.Request) {
 	}()
 	strs := r.PostForm["data"]
 	result := make([]bool, len(strs))
-	// 加锁, (1.读取key，2.若key不存在则赋值。) 这两步不是原子性的
+	// 加锁, (1.读取key，2.若key不存在则赋值。) 这两步合起来不是原子性的
 	mutex.Lock()
 	for i, v := range strs {
-		_, ok := data.Load(v)
+		_, ok := data[v]
 		if ok {
 			result[i] = true
 		} else {
 			result[i] = false
-			data.Store(v, struct{}{})
+			data[v]= struct{}{}
 		}
 	}
 	mutex.Unlock()
